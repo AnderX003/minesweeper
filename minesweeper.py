@@ -1,16 +1,16 @@
 from random import choice
 from tkinter import *
 from tkinter import ttk
+import pickle
 
 
-class Cell(object):  # Класс клетки, наследуется от Object
+class Cell:  # Класс клетки
     def __init__(self, master, row, column):
-        self.button = Button(master, text="   ", bg=col_white, activebackground=col_white_active,
-                             activeforeground=col_white, pady=0, padx=0, width=2, height=1, relief="flat", bd=0,
-                             font="Bahnschrift 12")
+        """инициализация класса клетки"""
+        self.button = Button(master, text="   ", bg=col_white, activebackground=col_white_active, activeforeground=col_white, pady=0, padx=0, width=2, height=1, relief="flat", bd=0, font="Bahnschrift 12")
         if (row + column) % 2 == 1:
             self.button.configure(bg=col_white_sub)  # немного затемнённый не прожатый
-        self.mine = False  # Поле наличия мины в клетке
+        self.mine = False  # Наличие мины в клетке
         self.value = 0  # Кол-во мин вокруг
         self.viewed = False  # Открыто/закрыто
         self.flag = 0  # 0 - флага нет, 1 - флаг стоит, 2 - стоит "?"
@@ -24,6 +24,7 @@ class Cell(object):  # Класс клетки, наследуется от Obje
         self.column = column  # Столбец
 
     def set_around(self):
+        """заполнение массива around каждой клетки"""
         if self.row == 0:
             self.around.append([self.row + 1, self.column])
             if self.column == 0:
@@ -70,20 +71,19 @@ class Cell(object):  # Класс клетки, наследуется от Obje
                 self.around.append([self.row - 1, self.column - 1])
 
     def view(self, event):
+        """при нашатии на кнопку игрового поля"""
         if not mines:  # При первом нажатии
-            bombs_generator(0, self.around, self.row, self.column)  # Устанавливаем мины
-        if self.value == 0:
-            if (self.row + self.column) % 2 == 0:
-                self.bg = col_main_sub  # прожатый  g
-            else:
-                self.bg = col_main  # немного затемнённый прожатый
+            bombs_generator(0, self.around, self.row, self.column)
 
         if self.mine and not self.viewed and not self.flag:  # Если в клетке есть мина, она еще не открыта и на ней нет флага
             # print("bomb", self.value)
             self.button.configure(text="B", fg=col_white, bg=col_bomb, activebackground=col_bomb_active)  # мина r
             self.viewed = True  # Говорим, что клетка раскрыта
             for q in mines:
-                buttons[q[0]][q[1]].view("<Button-1>")  # Я сейчас буду вскрывать ВСЕ мины
+                try:
+                    buttons[q[0]][q[1]].view("<Button-1>")  # Я сейчас буду вскрывать ВСЕ мины
+                except:
+                    pass
 
             global c
             if not c:
@@ -92,8 +92,7 @@ class Cell(object):  # Класс клетки, наследуется от Obje
 
         elif not self.viewed and not self.flag:  # Если мины нет, клетка не открыта и флаг не стоит
             try:
-                self.button.configure(text=self.value, fg=self.clr, bg=self.bg,
-                                      activebackground=self.abg)  # выводим в текст клетки значение
+                self.button.configure(text=self.value, fg=self.clr, bg=self.bg, activebackground=self.abg)  # выводим в текст клетки значение
                 self.viewed = True
                 if self.value == 0:  # Если вокруг нет мин
                     self.button.configure(text="   ")
@@ -103,24 +102,27 @@ class Cell(object):  # Класс клетки, наследуется от Obje
                 pass
 
     def set_flag(self, event):
-        if self.flag == 0 and not self.viewed:  # Если клетка не открыта и флага нет
-            self.flag = 1  # Ставим флаг
-            self.button.configure(text="F", fg=col_white, bg=col_flag, activebackground=col_flag_active)  # флаг
-            flags.append([self.row, self.column])  # Добавляем в массив флагов
-        elif self.flag == 1:  # Если флаг стоит
-            self.flag = 2  # Ставим значение "?"
-            self.button.configure(text="?", fg=col_white, bg=col_guess, activebackground=col_guess_active)  # ?
-            flags.pop(flags.index([self.row, self.column]))  # Удаляем флаг из массива флагов
-        elif self.flag == 2:  # Если ?
-            self.flag = 0  # Устанавливаем на отсутствие флага
-            self.button.configure(text="   ", bg=col_white, activebackground=col_white_active)  # пустой
-            if (self.row + self.column) % 2 == 1:
-                self.button.configure(bg=col_white_sub)
-        if sorted(mines) == sorted(flags) and mines != []:  # если массив флагов идентичен массиву мин
-            win_or_loose()
+        """при нажатии левой клавишей миши на кнопку игрового поля"""
+        if mines:
+            if self.flag == 0 and not self.viewed:  # Если клетка не открыта и флага нет
+                self.flag = 1  # Ставим флаг
+                self.button.configure(text="F", fg=col_white, bg=col_flag, activebackground=col_flag_active)  # флаг
+                flags.append([self.row, self.column])  # Добавляем в массив флагов
+            elif self.flag == 1:  # Если флаг стоит
+                self.flag = 2  # Ставим значение "?"
+                self.button.configure(text="?", fg=col_white, bg=col_guess, activebackground=col_guess_active)  # ?
+                flags.pop(flags.index([self.row, self.column]))  # Удаляем флаг из массива флагов
+            elif self.flag == 2:  # Если ?
+                self.flag = 0  # Устанавливаем на отсутствие флага
+                self.button.configure(text="   ", bg=col_white, activebackground=col_white_active)  # пустой
+                if (self.row + self.column) % 2 == 1:
+                    self.button.configure(bg=col_white_sub)
+            if sorted(mines) == sorted(flags) and mines != []:  # если массив флагов идентичен массиву мин
+                win_or_loose(True)
 
 
 def close_windows(*windows):
+    """закрывает переданные окна"""
     for window in windows:
         try:
             window.destroy()
@@ -129,37 +131,45 @@ def close_windows(*windows):
 
 
 def win_or_loose(case=False):
+    """открывает окно победы или поражения
+    запукает сохранение рекордов"""
     def on_close_windows():
         close_windows(win_or_loose_window, game_window)
-        choose_level(user)
+        menu(user)
 
     global data, score, game_window
+
+    # data[user][12] = False
+
     for flag in flags:
         if flag in mines:
             score += 1
+        else:
+            score -= 1
+
+    data[user][2], data[user][3], data[user][4], data[user][5], data[user][6], data[user][7], data[user][8], data[user][9], data[user][10], data[user][11] = score, data[user][2], data[user][3], data[user][4], data[user][5], data[user][6], data[user][7], data[user][8], data[user][9], data[user][10]
 
     if score > int(data[user][1]):
         # print("score>saved")
         data[user][1] = str(score)
         # print(data)
         update_data(data)
+    else:
+        update_data(data)
 
     win_or_loose_window = Tk()
     win_or_loose_window["bg"] = col_white
-    win_or_loose_window.geometry("400x200")
+    win_or_loose_window.geometry("400x200+750+200")
     win_or_loose_window.title("Minesweeper")
 
     win_or_loose_text = Label(win_or_loose_window, text="Game Over!", bg=col_white, font="Bahnschrift 40", fg="gray22")
 
-    score_text = Label(win_or_loose_window, height=1, text="Your Score: " + str(score), bg=col_white,
-                       font="Bahnschrift 20", fg="gray22")
+    score_text = Label(win_or_loose_window, height=1, text="Your Score: " + str(score), bg=col_white, font="Bahnschrift 20", fg="gray22")
 
-    close_button = Button(win_or_loose_window, text="Ok", command=on_close_windows, bg=col_white_sub,
-                          activebackground=col_white_active, font="Bahnschrift 20", relief="flat", fg="gray22", width=6,
-                          height=1)
+    close_button = Button(win_or_loose_window, text="Ok", command=on_close_windows, bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 20", relief="flat", fg="gray22", width=6, height=1)
 
     if case:
-        win_or_loose_text.config(text="Game Over!")
+        win_or_loose_text.config(text="You won!")
 
     win_or_loose_text.place(relx=0.5, rely=0.2, anchor=CENTER)
     score_text.place(relx=0.5, rely=0.4, anchor=CENTER)
@@ -169,53 +179,62 @@ def win_or_loose(case=False):
 
 
 def bombs_generator(current_bombs_quantity, around, row, column):
-    if current_bombs_quantity == bombs:  # Если кол-во установленных бомб = кол-ву заявленных. Увеличение value
-        for i in buttons:  # Шагаем по строкам
-            for j in i:  # Шагаем по клеткам в строке i
-                for k in j.around:  # Шагаем по клеткам вокруг выбранного поля j
-                    if buttons[k[0]][k[1]].mine:  # Если в одном из полей k мина
-                        buttons[buttons.index(i)][i.index(j)].value += 1  # То увеличиваем значение поля j
+    """функция генерации мин в зависимости от к-ва бомб"""
+    if current_bombs_quantity == bombs:
+        for i in buttons:
+            for j in i:
+                for k in j.around:
+                    if buttons[k[0]][k[1]].mine:
+                        buttons[buttons.index(i)][i.index(j)].value += 1
         return
-    a = choice(buttons)  # рандомная строка
-    b = choice(a)  # Рандомная клетка
-    if [buttons.index(a), a.index(b)] not in mines and [buttons.index(a), a.index(b)] not in around and [buttons.index(a), a.index(b)] != [row, column]:  # Проверяем, что выбранное поле не выбиралось до этого и, что не является полем на которую мы нажали (или окружающим ее полем)
-        b.mine = True  # Ставим мину
-        mines.append([buttons.index(a), a.index(b)])  # Добавляем ее в массив
-        bombs_generator(current_bombs_quantity + 1, around, row, column)  # Вызываем установщик, сказав, что одна мина уже есть
+    a = choice(buttons)
+    b = choice(a)
+
+    if [buttons.index(a), a.index(b)] not in mines and [buttons.index(a), a.index(b)] not in around and [buttons.index(a), a.index(b)] != [row, column]:
+        b.mine = True
+        mines.append([buttons.index(a), a.index(b)])
+        bombs_generator(current_bombs_quantity + 1, around, row, column)
     else:
-        bombs_generator(current_bombs_quantity, around, row, column)  # Вызываем установщик еще раз
+        bombs_generator(current_bombs_quantity, around, row, column)
 
 
 def cheat():
+    """функция для установки всех плагов там где мины"""
     for t in mines:
         buttons[t[0]][t[1]].set_flag("")
 
 
 def game(high, length):
+    """ф-я создания игрового окна и генерации массива с кнопками"""
     global c, score, game_window, buttons, mines, flags
     c = False
     score = 0
     game_window = Tk()
     game_window.title("Minesweeper")
+    if bombs == 10:
+        game_window.geometry("+790+200")
+    elif bombs == 40:
+        game_window.geometry("+670+200")
+    else:
+        game_window.geometry("+670+0")
 
     flags = []
     mines = []
-    buttons = [[Cell(game_window, row, column) for column in range(high)] for row in
-               range(length)]  # Двумерный массив, в котором лежат поля
-    for i in buttons:  # Цикл по строкам
-        for j in i:  # Цикл по элементам строки
-            j.button.grid(column=i.index(j), row=buttons.index(i), ipadx=7,
-                          ipady=3)  # Размещаем все в одной сетке при помощи grid
-            j.button.bind("<Button-1>", j.view)  # Биндим открывание клетки
-            j.button.bind("<Button-3>", j.set_flag)  # Установка флажка
-            j.set_around()  # Функция заполнения массива self.around
-    buttons[0][0].button.bind("<Control-Button-1>",
-                              lambda alpha: cheat())  # создаем комбинацию клавиш для быстрого решения
+    buttons = [[Cell(game_window, row, column) for column in range(high)] for row in range(length)]
+    for i in buttons:
+        for j in i:
+            j.button.grid(column=i.index(j), row=buttons.index(i), ipadx=7, ipady=3)
+            j.button.bind("<Button-1>", j.view)
+            j.button.bind("<Button-3>", j.set_flag)
+            j.set_around()
+    buttons[0][0].button.bind("<Control-Button-1>", lambda alpha: cheat())
+
     game_window.resizable(False, False)
     game_window.mainloop()
 
 
 def bomb_counter(level):
+    """присваивание высоты и ширины в зависимости от к-ва бомб и запуск игры"""
     global bombs
 
     if level == 0:
@@ -232,96 +251,150 @@ def bomb_counter(level):
         bombs = 10
         high = length = 9
 
-    settings_window.destroy()
+    menu_window.destroy()
 
     game(high, length)  # Начинаем игру, передавая кол-во полей
 
 
-def choose_level(login):
-    global user, settings_window
+def show_ones_stats(login, window):
+    """показывает окно с рейтинго конкретного игрока"""
+    def on_back():
+        close_windows(stats_user_window)
+        show_stats()
+
+    print(login)
+    close_windows(window)
+    stats_user_window = Tk()
+    stats_user_window.title("Minesweeper")
+    stats_user_window["bg"] = col_white
+    stats_user_window.geometry("600x150+650+0")
+
+    user_stats_text1 = Label(stats_user_window, height=1, text=f"{login} best "f": {data[login][1]}", bg=col_white, font="Bahnschrift 20", fg="gray22")
+    user_stats_text2 = Label(stats_user_window, height=1, text=f"last 10 games scores: {str(data[login][2:12])[1:-1]}", bg=col_white, font="Bahnschrift 15", fg="gray22")
+    back_button = Button(stats_user_window, text="Back", command=on_back, bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
+    back_button.place(relx=0.5, rely=0.75, anchor="center")
+    user_stats_text1.place(relx=0.5, rely=0.2, anchor="center")
+    user_stats_text2.place(relx=0.5, rely=0.4, anchor="center")
+    stats_user_window.resizable(False, False)
+    stats_user_window.mainloop()
+
+
+class ListButton:
+    """класс кнопки списка рейтинга игроков"""
+    def __init__(self, login, master, close):
+        self.login = login
+        self.button = Button(master, text=login, command=lambda: show_ones_stats(login, close), bg=col_white, activebackground=col_white_sub, activeforeground="gray22", font="Bahnschrift 12", relief="flat", fg="gray22")
+        if login == user:
+            self.button.configure(bg=col_main_sub, fg=col_white, activebackground=col_main, activeforeground=col_white)
+        self.button.place(relx=0.15, rely=0.5, anchor="w")
+
+
+def show_stats():
+    """окно списка рейтинга игроков"""
+    def on_back():
+        close_windows(stats_window)
+        menu(user)
+
+    close_windows(menu_window)
+
+    stats_window = Tk()
+    stats_window.title("Minesweeper")
+    stats_window["bg"] = col_white
+
+    user_text = Label(stats_window, height=1, text="User", bg=col_white, font="Bahnschrift 16", fg="gray22")
+    score_text = Label(stats_window, height=1, text="Score", bg=col_white, font="Bahnschrift 16", fg="gray22")
+    user_text.place(relx=0.1, y=30, anchor="w")
+    score_text.place(relx=0.9, y=30, anchor="e")
+    pos = 80
+    for login in (sorted(data, key=lambda alpha: int(data[alpha][1])))[::-1]:
+        user_frame = Frame(stats_window, height=40, width=260, bg=col_white)
+        ListButton(login, user_frame, stats_window)
+        user_score_text = Label(user_frame, height=1, text=data[login][1], bg=col_white, font="Bahnschrift 12", fg="gray22")
+        if login == user:
+            user_frame.configure(bg=col_main_sub)
+            user_score_text.configure(bg=col_main_sub, fg=col_white)
+        user_frame.place(relx=0.5, y=pos, anchor="center")
+        user_score_text.place(relx=0.8, rely=0.5, anchor="e")
+        pos += 40
+
+    back_button = Button(stats_window, text="Back", command=on_back, bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
+    back_button.place(relx=0.5, y=pos + 10, anchor="center")
+
+    stats_window.geometry(f"260x{pos + 40}+820+0")
+    stats_window.resizable(False, False)
+    stats_window.mainloop()
+
+
+def menu(login):
+    """окно меню из которого можно начать игру, выбрать сложжность, открыть окно рейтинга"""
+    global user, menu_window
     user = login
-    settings_window = Tk()
-    settings_window.title("Minesweeper")
-    settings_window.geometry("400x200")
-    settings_window["bg"] = col_white
+    menu_window = Tk()
+    menu_window.title("Minesweeper")
+    menu_window.geometry("400x200+750+200")
+    menu_window["bg"] = col_white
 
     def on_back():
-        close_windows(settings_window)
+        close_windows(menu_window)
         sign_in()
 
-    best_score_text = Label(settings_window, height=1, text=f"{user} best: {data[user][1]}", bg=col_white,
-                            font="Bahnschrift 25", fg="gray22")
-    choose_text = Label(settings_window, height=1, text="Choose difficulty:", bg=col_white, font="Bahnschrift 15",
-                        fg="gray22")
-    choose_combo = ttk.Combobox(settings_window, values=["Beginner", "Amateur", "Professional"])
+    best_score_text = Label(menu_window, height=1, text=f"{user} best: {data[user][1]}", bg=col_white, font="Bahnschrift 25", fg="gray22")
+    choose_text = Label(menu_window, height=1, text="Choose difficulty:", bg=col_white, font="Bahnschrift 15", fg="gray22")
+    choose_combo = ttk.Combobox(menu_window, values=["Beginner", "Amateur", "Professional"])
     choose_combo.current(0)
-    choose_button = Button(settings_window, text="Start", command=lambda: bomb_counter(choose_combo.current()),
-                           bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 15", relief="flat",
-                           fg="gray22",
-                           width=6)
-    back_button = Button(settings_window, text="Back", command=on_back, bg=col_white_sub,
-                         activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
-    close_button = Button(settings_window, text="Close", command=lambda: close_windows(settings_window),
-                          bg=col_white_sub,
-                          activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
+    choose_button = Button(menu_window, text="Start", command=lambda: bomb_counter(choose_combo.current()), bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
+    back_button = Button(menu_window, text="Back", command=on_back, bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
+    close_button = Button(menu_window, text="Close", command=lambda: close_windows(menu_window), bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
+    stats_button = Button(menu_window, text="Stats", command=show_stats, bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
 
-    best_score_text.place(relx=0.5, rely=0.1, anchor=CENTER)
-    choose_text.place(relx=0.5, rely=0.3, anchor=CENTER)
-    choose_combo.place(relx=0.5, rely=0.45, anchor=CENTER)
-    choose_button.place(relx=0.5, rely=0.75, anchor=CENTER)
-    back_button.place(relx=0.3, rely=0.75, anchor=CENTER)
-    close_button.place(relx=0.7, rely=0.75, anchor=CENTER)
-    settings_window.resizable(False, False)
-    settings_window.mainloop()
+    best_score_text.place(relx=0.5, rely=0.12, anchor="center")
+    choose_text.place(relx=0.5, rely=0.32, anchor="center")
+    choose_combo.place(relx=0.5, rely=0.47, anchor="center")
+    choose_button.place(relx=0.6, rely=0.77, anchor="center")
+    back_button.place(relx=0.8, rely=0.77, anchor="center")
+    close_button.place(relx=0.2, rely=0.77, anchor="center")
+    stats_button.place(relx=0.4, rely=0.77, anchor="center")
+    menu_window.resizable(False, False)
+    menu_window.mainloop()
 
 
 def update_data(local_data):
+    """сохранение рекорда"""
     # print("update_data")
     # print(local_data)
-    data_string = ""
-    for login in local_data:
-        data_string += login + " "
-        for elem in local_data[login]:
-            data_string += elem + " "
-    # print(data_string)
-    data_file = open("data.txt", "w")
-    data_file.write(data_string)
-    data_file.close()
+    with open("data.pkl", "wb") as data_pickle:
+        pickle.dump(local_data, data_pickle)
 
 
 def authenticate(login, password):
-    # print("authenticate")
+    """ф-я добавляет новых пользователей и свяряет пароли с введенными"""
     global data
-    # print(data)
     if data:
         # print("data")
         if login in data:
             # print("in")
             if password == data[login][0]:
                 # print("true password")
-                return data[login][1]
+                return True
             else:
                 # print("false password")
-                return -1
+                return False
         else:
-            # print("not in")
-            data_string = login + " " + password + " " + "0" + " "
-            data_file = open("data.txt", "a")
-            data_file.write(data_string)
-            data_file.close()
-            data[login] = [password, "0"]
-            return 0
+            # # print("not in")
+            data[login] = [password, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            with open("data.pkl", "wb") as data_pickle:
+                pickle.dump(data, data_pickle)
+            return True
     else:
         # print("not data")
-        data_string = login + " " + password + " " + "0" + " "
-        data_file = open("data.txt", "w")
-        data_file.write(data_string)
-        data_file.close()
-        data[login] = [password, "0"]
-        return 0
+        data[login] = [password, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        with open("data.pkl", "wb") as data_pickle:
+            pickle.dump(data, data_pickle)
+        return True
 
 
 def handle(login, password, window):
+    """ф-я обрабатывает введенные данные убирая из них " " ", " ' ", "   " и отправляет их в authenticate()"""
     # print("handle")
 
     new_login = ""
@@ -338,40 +411,33 @@ def handle(login, password, window):
         error_text.configure(text="Empty login or password")
     else:
         best_score = authenticate(new_login, new_password)
-        if best_score == -1:
+        if not best_score:
             # print("back_sign_in")
             error_text.configure(text="Invalid password")
         else:
             # print("call_start")
             window.destroy()
-            choose_level(login)
+            menu(login)
 
 
 def sign_in():
+    """ф-я строит окно аутентификации со всеми кнопками
+    при поттержении отправляет введенные данные в handle()"""
     # print("sign_in")
     authenticate_window = Tk()
     authenticate_window.title("Minesweeper")
-    authenticate_window.geometry("300x250")
+    authenticate_window.geometry("300x250+800+200")
     authenticate_window["bg"] = col_white
 
-    choose_text = Label(authenticate_window, height=1, text="Sing in or create new account", bg=col_white,
-                        font="Bahnschrift 15", fg="gray22")
-    enter_login_text = Label(authenticate_window, height=1, text="Enter login:", bg=col_white,
-                             font="Bahnschrift 15", fg="gray22")
+    choose_text = Label(authenticate_window, height=1, text="Sing in or create new account", bg=col_white, font="Bahnschrift 15", fg="gray22")
+    enter_login_text = Label(authenticate_window, height=1, text="Enter login:", bg=col_white, font="Bahnschrift 15", fg="gray22")
     input_login = Entry(authenticate_window)
-    enter_password_text = Label(authenticate_window, height=1, text="Enter login:", bg=col_white,
-                                font="Bahnschrift 15", fg="gray22")
+    enter_password_text = Label(authenticate_window, height=1, text="Enter password:", bg=col_white, font="Bahnschrift 15", fg="gray22")
     input_password = Entry(authenticate_window)
-    sign_in_button = Button(authenticate_window, text="Log in",
-                            command=lambda: handle(input_login.get(), input_password.get(), authenticate_window),
-                            bg=col_white_sub,
-                            activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22",
-                            width=6)
-    authenticate_window.bind("<Return>",
-                             lambda event: handle(input_login.get(), input_password.get(), authenticate_window))
-    close_button = Button(authenticate_window, text="Close", command=lambda: close_windows(authenticate_window),
-                          bg=col_white_sub,
-                          activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
+    sign_in_button = Button(authenticate_window, text="Log in", command=lambda: handle(input_login.get(), input_password.get(), authenticate_window), bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
+    authenticate_window.bind("<Return>", lambda event: handle(input_login.get(), input_password.get(), authenticate_window))
+    authenticate_window.bind("<Escape>", lambda event: handle("1", "1", authenticate_window))
+    close_button = Button(authenticate_window, text="Close", command=lambda: close_windows(authenticate_window), bg=col_white_sub, activebackground=col_white_active, font="Bahnschrift 15", relief="flat", fg="gray22", width=6)
 
     global error_text
     error_text = Label(authenticate_window, height=1, text="", bg=col_white, font="Bahnschrift 15", fg=col_bomb)
@@ -389,31 +455,21 @@ def sign_in():
 
 
 def read_data():
+    """открывает данные на компбютере и запускает sign_in()"""
     # print("read data")
-    # {login: [password, best]}
+    global data
     try:
-        datafile = open("data.txt")
-        array = datafile.read().split()
-        datafile.close()
-        global data
-        data = {}
-        a = 0
-        login = password = ""
-        for elem in array:
-            a += 1
-            if a == 1:
-                login = elem
-            elif a == 2:
-                password = elem
-            elif a == 3:
-                data[login] = [password, elem]
-                a = 0
-        sign_in()
+        with open("data.pkl", "rb") as data_pickle:
+            data = pickle.load(data_pickle)
+        if not data:
+            data = {}
     except FileNotFoundError:
-        sign_in()
+        data = {}
+    print(data)
+    sign_in()
 
 
-global data, user, buttons, mines, flags, score, bombs, game_window, settings_window, error_text, c
+global data, user, buttons, mines, flags, score, bombs, game_window, menu_window, error_text, c
 col_main = "#167C80"
 col_main_sub = "#2B888B"
 col_main_active = "#0D4A4D"
